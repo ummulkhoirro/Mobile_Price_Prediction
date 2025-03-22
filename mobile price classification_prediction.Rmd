@@ -1,0 +1,471 @@
+---
+title: "Mobile Price Classification_PCA & FA"
+author: 
+- Ummul Khoirro' Syari
+- Tutik Hidayah Hardiyanti
+date: "2025-03-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(psych)
+library(FactoMineR)
+library(factoextra)
+
+
+data_test <- read.csv("test (1).csv")  
+data_train <- read.csv("train (1).csv")
+
+print(head(data_train))
+```
+
+## Dataset yang dipakai
+
+**train.csv**: Digunakan sebagai data latih.
+
+**test.csv**: Digunakan untuk pengujian model.
+
+**Variabel target**: price_range (kategori harga 0–3).
+
+**Variabel prediktor**: Fitur-fitur spesifikasi teknis ponsel seperti battery_power, ram, px_height, px_width, dll. https://www.kaggle.com/datasets/iabhishekofficial/mobile-price-classification?select=train.csv.
+
+
+projek ini bertujuan untuk mengidentifikasi variabel-variabel yang berkontribusi dalam Mobile Price Classification(price_range). Analisis ini dilakukan menggunakan Principal Component Analysis (PCA) dan Factor Analysis (FA) untuk mengekstraksi informasi utama dari dataset.
+
+
+Berikut adalah daftar kolom dalam dataset Mobile Price Classification beserta deskripsinya:
+
+1. **battery_power** – Total energi yang dapat disimpan oleh baterai dalam satu waktu (mAh).
+
+2. **blue** – Apakah ponsel memiliki fitur Bluetooth? (0 = Tidak, 1 = Ya).
+
+3. **clock_speed** – Kecepatan clock prosesor (GHz).
+dual_sim – Apakah ponsel memiliki fitur dual SIM? (0 = Tidak, 1 = Ya).
+
+4. **fc** – Resolusi kamera depan (megapiksel).
+
+5. **four_g** – Apakah ponsel mendukung jaringan 4G? (0 = Tidak, 1 = Ya).
+
+6. **int_memory** – Kapasitas penyimpanan internal (GB).
+
+7. **m_dep** – Kedalaman ponsel dalam cm.
+
+8. **mobile_wt** – Berat ponsel dalam gram.
+
+9. **n_cores** – Jumlah inti (cores) dalam prosesor.
+
+10. **pc** – Resolusi kamera utama (megapiksel).
+
+11. **px_height** – Tinggi resolusi layar dalam piksel.
+
+12. **px_width** – Lebar resolusi layar dalam piksel.
+
+13. **ram** – Kapasitas RAM ponsel (MB).
+
+14. **sc_h** – Tinggi layar ponsel (cm).
+
+15. **sc_w** – Lebar layar ponsel (cm).
+
+16. **talk_time** – Waktu bicara maksimum yang didukung oleh baterai (jam).
+
+17. **three_g** – Apakah ponsel mendukung jaringan 3G? (0 = Tidak, 1 = Ya).
+
+18. **touch_screen** – Apakah ponsel memiliki layar sentuh? (0 = Tidak, 1 = Ya).
+
+19. **wifi** – Apakah ponsel memiliki fitur WiFi? (0 = Tidak, 1 = Ya).
+
+20. **price_range** – Kategori harga ponsel (0 = Murah, 1 = Menengah Bawah, 2 = Menengah Atas, 3 = Mahal).
+
+
+
+```{r describe, echo=TRUE}
+str(data_test)
+str(data_train)
+dim(data_train)
+dim(data_test)
+colnames(data_train)
+```
+
+```{r pre processing, echo=TRUE}
+sum(is.na(data_train))
+colSums(is.na(data_train))
+```
+
+```{r target, echo=TRUE}
+set.seed(123)
+index <- sample(1:nrow(data_train), 0.8 * nrow(data_train))
+data_train_split <- data_train[index, ]
+data_test_split <- data_train[-index, ]
+
+
+target_var <- "price_range"  
+
+if (!(target_var %in% colnames(data_train_split))) {
+    stop("Kolom target tidak ditemukan dalam dataset!")
+}
+
+
+data_train_x <- data_train_split %>% select(-any_of(target_var))
+data_test_x <- data_test_split %>% select(-any_of(target_var))
+```
+
+
+```{r bartlett , echo=TRUE}
+bartlett.test(data_train_x)
+```
+
+```{r uji kmo, echo=TRUE}
+r <- cor(data_train_x)
+KMO(r)
+```
+
+
+
+
+## -------------------------- principal component analisis ---------------------------------
+
+
+```{r scale, echo=TRUE}
+scale_data <- scale(data_train_x)
+r <- cov(scale_data)
+```
+
+
+```{r eigen , echo=TRUE}
+pc_train <- eigen(r)
+pc_train$values
+```
+
+# Interpretasi Eigen value
+Nilai eigenvalues menggambarkan seberapa banyak variabilitas dalam data yang dijelaskan oleh masing-masing komponen utama (PC).
+
+- Eigenvalues yang besar berarti komponen utama tersebut mampu menjelaskan lebih banyak informasi dari dataset.
+
+- Eigenvalues yang kecil menunjukkan bahwa komponen utama tersebut kurang signifikan dalam menjelaskan variasi data.
+
+
+**Dari hasil yang diperoleh:**
+
+- PC1 memiliki eigenvalue 1.672, yang berarti komponen utama pertama menjelaskan sebagian besar variasi dalam data.
+
+- PC2 – PC10 memiliki nilai eigenvalue yang cukup tinggi (>1), menunjukkan bahwa mereka masih memiliki kontribusi signifikan.
+
+- PC11 – PC16 memiliki nilai mendekati 1, yang berarti kontribusi mereka mulai berkurang.
+
+- PC17 – PC20 memiliki eigenvalues <1, yang menandakan bahwa komponen ini menjelaskan sedikit variasi dalam dataset.
+
+
+```{r var sumvar, echo=TRUE}
+sumvar <- sum(pc_train$values)
+propvar <- sapply(pc_train$values, function(x) x / sumvar) * 100
+cumvar <- data.frame(cbind(pc_train$values, propvar)) %>% mutate(cum = cumsum(propvar))
+colnames(cumvar)[1] <- "value"
+rownames(cumvar) <- paste0("PC", 1:ncol(data_train_x))
+print(cumvar)
+```
+
+Hanya komponen dengan eigenvalue > 1 yang perlu dipertimbangkan karena menjelaskan sebagian besar variabilitas dalam data.
+
+Komponen dengan eigenvalue kecil (misalnya, di bawah 0.5) dapat diabaikan karena tidak memberikan kontribusi yang signifikan terhadap representasi data.
+
+```{r pca, echo=TRUE}
+pc <- eigen(cov(scale_data)) 
+pc$vectors
+scores <- as.matrix(scale_data) %*% pc$vectors
+head(scores)
+```
+
+```{r pca mod, echo=TRUE}
+PCA.mod <- prcomp(scale_data)
+summary(PCA.mod)
+print(PCA.mod$rotation)  # Matriks loading
+head(PCA.mod$x)  # Skor PCA
+```
+
+# Menampilkan hasil utama PCA
+
+**a. Standard Deviation**
+Menunjukkan besarnya variasi dalam setiap komponen utama.
+
+- PC1 memiliki standar deviasi terbesar (1.2932) → Menunjukkan bahwa PC1 menangkap variasi terbesar dalam data.
+
+- PC20 memiliki standar deviasi terkecil (0.5883) → Variasinya kecil dan kurang penting.
+
+
+
+**b. Proportion of Variance**
+Menunjukkan seberapa banyak variasi yang dijelaskan oleh masing-masing komponen.
+
+- PC1 menjelaskan 8.36% dari total variasi data.
+
+- PC2 menjelaskan 8.27%, 
+
+- PC3 menjelaskan 7.77%, dst.
+
+Variasi yang dijelaskan tiap PC menurun seiring bertambahnya indeks PC.
+
+
+
+**c. Cumulative Proportion**
+Menunjukkan jumlah variasi yang dijelaskan secara kumulatif.
+
+- PC1 hingga PC7 menjelaskan sekitar 48.24% variasi.
+
+- PC1 hingga PC14 menjelaskan sekitar 82.65% variasi.
+
+- PC1 hingga PC20 menjelaskan 100% variasi.
+
+Jika ingin mempertahankan sekitar 80-90% informasi, bisa memilih PC1 hingga PC14.
+
+
+```{r factominer, echo=TRUE}
+pca_result <- PCA(scale_data, scale.unit = TRUE, graph = FALSE, ncp = ncol(data_train_x))
+```
+
+- Komponen pertama (comp 1) memiliki eigenvalue 1.672, yang menjelaskan sekitar 8.36% dari total varians.
+
+- Komponen kedua (comp 2) memiliki eigenvalue 1.654 dan menjelaskan 8.27% varians tambahan.
+
+```{r sumary, echo=TRUE}
+pca_result$eig
+pca_result$svd$V
+pca_result$ind$coord
+```
+
+```{r visualisasi, echo=TRUE}
+fviz_eig(pca_result, addlabels = TRUE, ncp = ncol(data_train_x), 
+         barfill = "skyblue", barcolor = "darkblue", linecolor = "red")
+```
+
+**Kontribusi Dimensi:** 
+
+- Dimensi pertama (1) menjelaskan 8.4% varians, 
+
+- dimensi kedua (2) menjelaskan 8.3%, 
+
+- dimensi ketiga (3) menjelaskan 7.8%, dan seterusnya. 
+
+Dimensi-dimensi awal ini memiliki kontribusi yang lebih besar dalam menjelaskan variasi data dibandingkan dengan dimensi-dimensi selanjutnya.
+
+```{r biplot, echo=TRUE}
+fviz_pca_biplot(pca_result, geom.ind = "point", addEllipses = TRUE)
+```
+
+**Komponen Utama:** 
+
+Grafik ini menampilkan dua komponen utama pertama (Dim1 dan Dim2) yang menjelaskan sebagian besar variasi data (8.4% + 8.3% = 16.7%). Komponen utama adalah kombinasi linier dari variabel asli dan mewakili arah variasi terbesar dalam data.
+
+**Pengelompokan Observasi:** 
+
+Titik-titik hitam yang berdekatan menunjukkan observasi yang serupa. Pola pengelompokan ini dapat memberikan wawasan tentang struktur data.
+
+**Kontribusi Variabel:** 
+
+Panah biru menunjukkan bagaimana variabel asli berkontribusi terhadap komponen utama.
+
+**Arah Panah:** 
+
+- Arah panah : menunjukkan korelasi variabel dengan komponen utama. Variabel dengan panah yang mengarah ke arah yang sama memiliki korelasi positif, sedangkan variabel dengan panah yang mengarah ke arah yang berlawanan memiliki korelasi negatif.
+
+- Panjang Panah: Panjang panah menunjukkan kekuatan kontribusi variabel. Variabel dengan panah yang lebih panjang memiliki kontribusi yang lebih besar terhadap komponen utama.
+
+**Elips:** 
+
+Elips membantu mengidentifikasi pola pengelompokan dan outlier. Observasi di luar elips mungkin merupakan outlier atau memiliki karakteristik yang berbeda dari sebagian besar data.
+
+**Interpretasi Variabel:** 
+
+Berdasarkan panah biru, kita dapat menginterpretasikan variabel-variabel yang paling berkontribusi terhadap komponen utama. Misalnya, variabel "foreea d" dan "Pre" memiliki panah yang cukup panjang, menunjukkan bahwa mereka memiliki kontribusi yang signifikan terhadap variasi data. Variabel "ssh" juga tampaknya memiliki kontribusi yang cukup besar.
+
+```{r corelation, echo=TRUE}
+contrib_circle <- fviz_pca_var(pca_result, col.var = "contrib",
+                               gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                               repel = TRUE) + ggtitle("Kontribusi Variabel")
+plot(contrib_circle)
+```
+
+**Kontribusi Variabel:**
+
+Grafik ini menunjukkan seberapa besar kontribusi setiap variabel terhadap dua komponen utama pertama (Dim1 dan Dim2). Variabel yang memiliki kontribusi besar akan memiliki panah yang lebih panjang dan berwarna lebih merah.
+
+**Variabel Penting:** Berdasarkan grafik, variabel-variabel berikut memiliki kontribusi yang cukup besar (berwarna merah atau oranye):
+
+- pc (primary camera)
+
+- fc (front camera)
+
+- battery_power
+
+- four_g
+
+- three_g
+
+**Variabel Kurang Penting:** Variabel-variabel berikut memiliki kontribusi yang lebih kecil (berwarna biru atau hijau):
+
+- n_cores
+
+- px_height
+
+- px_width
+
+- sc_w (screen width)
+
+- sc_h (screen height)
+
+- ram
+
+- wifi
+
+- int_memory
+
+- m_dep (mobile depth)
+
+- dual_sim
+
+- clock_speed
+
+- touch_screen
+
+- mobile_wt (mobile weight)
+
+- talk_time
+
+- blue (bluetooth)
+
+**Arah Kontribusi:** 
+
+Arah panah menunjukkan bagaimana variabel berkontribusi terhadap komponen utama. Misalnya, variabel "pc" dan "fc" memiliki panah yang mengarah ke kanan, menunjukkan bahwa mereka berkorelasi positif dengan Dim1. Variabel "four_g" dan "three_g" memiliki panah yang mengarah ke atas, menunjukkan bahwa mereka berkorelasi positif dengan Dim2.
+
+```{r contribution, echo=TRUE}
+contrib_v_PC1 <- fviz_contrib(pca_result, choice = "var", axes = 1, top = 5) + ggtitle("PC1")
+contrib_v_PC2 <- fviz_contrib(pca_result, choice = "var", axes = 2, top = 5) + ggtitle("PC2")
+contrib_v_PC3 <- fviz_contrib(pca_result, choice = "var", axes = 3, top = 5) + ggtitle("PC3")
+plot(contrib_v_PC3)
+```
+
+**Komponen Utama 3 (PC3):**
+
+Grafik ini menunjukkan variabel-variabel yang paling berkontribusi terhadap PC3. PC3 adalah komponen utama ketiga yang menjelaskan variasi data setelah PC1 dan PC2.
+
+**Variabel Penting:** Berdasarkan grafik, variabel-variabel berikut memiliki kontribusi yang signifikan terhadap PC3:
+
+- px_height (tinggi piksel)
+
+- px_width (lebar piksel)
+
+- three_g
+
+- four_g
+
+- sc_h (tinggi layar)
+
+**Kontribusi Relatif:**
+
+Variabel "px_height" memiliki kontribusi terbesar terhadap PC3, diikuti oleh "px_width", "three_g", "four_g", dan "sc_h".
+
+**Kontribusi di Atas Rata-rata:** 
+
+Semua variabel yang ditampilkan dalam grafik ini memiliki kontribusi di atas rata-rata (di atas garis putus-putus merah), menunjukkan bahwa mereka memainkan peran penting dalam menjelaskan variasi data yang ditangkap oleh PC3.
+
+## --------------------------- Faktor Analisis -----------------------
+
+
+
+```{r var covar, echo=TRUE}
+varcov_train <- cov(scale_data)
+pc_train_fa <- eigen(varcov_train)
+print(pc_train_fa$values)
+
+# Menghitung Factor Loadings secara manual
+L1 <- sqrt(pc_train_fa$values[1]) * pc_train_fa$vectors[, 1]
+L2 <- sqrt(pc_train_fa$values[2]) * pc_train_fa$vectors[, 2]
+L3 <- sqrt(pc_train_fa$values[3]) * pc_train_fa$vectors[, 3]
+L <- cbind(L1, L2, L3)
+print(L)
+```
+
+- Variabel ke-5 memiliki factor loading 0.838 pada faktor pertama (L1), menunjukkan bahwa variabel ini sangat berkorelasi positif dengan faktor pertama.
+
+- Variabel ke-6 memiliki factor loading 0.667 pada faktor kedua (L2), menunjukkan bahwa variabel ini cukup berkorelasi positif dengan faktor kedua.
+
+```{r fa, echo=TRUE}
+fa_train <- fa(r = r, covar = TRUE, nfactors = 3, rotate = "varimax")
+loadings <- fa_train$loadings
+print(loadings)
+```
+
+# Interpretasi Faktor Berdasarkan Loadings:
+**MR1 (Faktor 1):** mewakili "Fitur Kamera"
+
+- fc (front camera) memiliki loading tinggi (0.969), menunjukkan bahwa variabel ini sangat berkorelasi dengan faktor 1.
+
+- pc (primary camera) juga memiliki loading yang cukup tinggi (0.661).
+
+**MR2 (Faktor 2):** mewakili "Fitur Konektivitas Jaringan"
+
+- four_g memiliki loading tinggi (0.785).
+
+- three_g memiliki loading yang cukup tinggi (0.721).
+
+
+**MR3 (Faktor 3):** mewakili "Fitur Resolusi Layar"
+
+- px_height memiliki loading tinggi (0.794).
+
+- px_width memiliki loading yang cukup tinggi (0.634).
+
+
+**SS Loadings:**
+Ini adalah jumlah kuadrat dari factor loadings untuk setiap faktor.
+
+Ini memberikan indikasi tentang kekuatan setiap faktor.
+
+**Proportion Var:**
+
+Ini adalah proporsi variasi yang dijelaskan oleh setiap faktor.
+Misalnya, faktor 1 (MR1) menjelaskan 0.070 (7%) dari total variasi.
+
+**Cumulative Var:**
+
+Ini adalah variasi kumulatif yang dijelaskan oleh faktor-faktor tersebut.
+Misalnya, faktor 1 dan 2 (MR1 dan MR2) bersama-sama menjelaskan 0.128 (12.8%) dari total variasi.
+
+
+```{r visualisasi fa, echo=TRUE}
+plot(loadings[, c(1, 3)], type = "n")
+text(loadings[, c(1, 3)], labels = names(data_train_x), cex = .7)
+fa.diagram(loadings)
+```
+
+Berdasarkan analisis menggunakan Principal Component Analysis (PCA) dan Factor Analysis (FA) pada dataset Mobile Price Classification, berikut adalah 
+
+## kesimpulan utama:
+
+**PCA Findings:**
+
+- Komponen utama pertama (PC1) menjelaskan sekitar 8.36% dari total varians, sedangkan PC1 hingga PC14 menjelaskan sekitar 82.65% variasi.
+
+- Variabel yang paling berkontribusi terhadap PC1 dan PC2 adalah RAM, resolusi layar (px_height, px_width), battery_power, dan fitur jaringan (four_g, three_g).
+
+- Variabel yang kurang berkontribusi adalah n_cores, screen width (sc_w), screen height (sc_h), dan mobile weight (mobile_wt).
+
+- Biplot dan korelasi antar variabel menunjukkan bahwa RAM dan resolusi layar menjadi faktor dominan dalam klasifikasi harga ponsel.
+
+
+**FA Findings:**
+
+- Faktor pertama (MR1) merepresentasikan fitur kamera dengan kontribusi terbesar dari fc (front camera) dan pc (primary camera).
+
+- Faktor kedua (MR2) merepresentasikan konektivitas jaringan, didominasi oleh four_g dan three_g.
+
+- Faktor ketiga (MR3) merepresentasikan kapasitas daya dan memori, di mana battery_power dan RAM memiliki kontribusi signifikan.
+
+
+**Kesimpulan Keseluruhan:**
+
+1. PCA membantu mengurangi dimensi dataset tanpa kehilangan banyak informasi, sehingga fitur-fitur utama yang berpengaruh dalam klasifikasi harga ponsel dapat diidentifikasi.
+
+2. FA mengelompokkan variabel menjadi beberapa faktor utama, membantu memahami struktur hubungan antar variabel.
+
+3. Faktor utama yang mempengaruhi harga ponsel adalah kapasitas RAM, resolusi layar, kapasitas baterai, dan fitur jaringan.
