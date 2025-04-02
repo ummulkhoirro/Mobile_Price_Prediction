@@ -8,6 +8,7 @@ Proyek ini bertujuan untuk memprediksi kisaran harga ponsel berdasarkan berbagai
 
 # Dataset
 sumber : https://www.kaggle.com/datasets/iabhishekofficial/mobile-price-classification/data
+
 Dataset yang digunakan berisi informasi tentang berbagai ponsel dengan fitur seperti:
 - Memori RAM (MB)
 - Kapasitas Baterai (mAh)
