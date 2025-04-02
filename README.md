@@ -24,14 +24,17 @@ Dataset yang digunakan berisi informasi tentang berbagai ponsel dengan fitur sep
 # Metode
 1. Preprocessing Data
    
-  Memeriksa nilai yang hilang atau tidak valid.
-  Normalisasi fitur jika diperlukan.
-  Pembagian data menjadi training dan testing set.
-
-2. Eksplorasi Data (EDA)
+     Memeriksa nilai yang hilang atau tidak valid.
    
-  Visualisasi hubungan antara fitur ponsel dan kategori harga.
-  Menganalisis distribusi data untuk memahami pola tertentu.
+     Normalisasi fitur jika diperlukan.
+   
+     Pembagian data menjadi training dan testing set.
+
+3. Eksplorasi Data (EDA)
+   
+     Visualisasi hubungan antara fitur ponsel dan kategori harga.
+   
+     Menganalisis distribusi data untuk memahami pola tertentu.
 
 3. Pelatihan Model
    
