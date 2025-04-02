@@ -23,15 +23,18 @@ Dataset yang digunakan berisi informasi tentang berbagai ponsel dengan fitur sep
 
 # Metode
 1. Preprocessing Data
+   
   Memeriksa nilai yang hilang atau tidak valid.
   Normalisasi fitur jika diperlukan.
   Pembagian data menjadi training dan testing set.
 
 2. Eksplorasi Data (EDA)
+   
   Visualisasi hubungan antara fitur ponsel dan kategori harga.
   Menganalisis distribusi data untuk memahami pola tertentu.
 
 3. Pelatihan Model
+   
   Menerapkan algoritma Machine Learning seperti:
   - Random Forest 
   - Support Vector Machine (SVM) 
@@ -40,5 +43,6 @@ Dataset yang digunakan berisi informasi tentang berbagai ponsel dengan fitur sep
   Menyesuaikan parameter model untuk meningkatkan akurasi.
 
 4. Evaluasi Model
+   
   Menggunakan metrik evaluasi seperti Akurasi, Precision, Recall, dan Confusion Matrix.
   Membandingkan kinerja setiap algoritma untuk menentukan model terbaik.
